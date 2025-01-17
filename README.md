@@ -4,8 +4,8 @@ The 'dtw_slope.R' is the R script for calculating DTW and cluster analysis. This
 
 Videos of the experimental protocol and participant's recruitment.
 
-https://www.youtube.com/shorts/TVUfbu0N29Y?feature=share 
-https://www.youtube.com/shorts/TUewKERmHQY?feature=share 
-https://www.youtube.com/shorts/yyf0_BSU_eI?feature=share 
-https://www.youtube.com/shorts/BqlAruShluM?feature=share 
-https://www.youtube.com/shorts/mFfjMsEKeco?feature=share 
+Task: https://www.youtube.com/shorts/TVUfbu0N29Y?feature=share 
+Presentation: https://www.youtube.com/shorts/TUewKERmHQY?feature=share 
+Maximum Action Capabilities (MAC) Test: https://www.youtube.com/shorts/yyf0_BSU_eI?feature=share 
+Familiarization: https://www.youtube.com/shorts/BqlAruShluM?feature=share 
+Recruitment: https://www.youtube.com/shorts/mFfjMsEKeco?feature=share 
