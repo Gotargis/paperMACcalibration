@@ -1,4 +1,4 @@
-# paperMACcalibration
+# paper_MAC_calibration
 
 The codes for data analysis were created and run in Rstudio (Version: 2023.12.1+402). Rstudio is a free software and you can download it from this link: https://posit.co/download/rstudio-desktop/
 
