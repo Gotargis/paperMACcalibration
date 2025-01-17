@@ -1,0 +1,120 @@
+# Load necessary libraries
+library(ggplot2)
+library(patchwork)  # For combining plots
+
+# Set working directory
+setwd("C:/Users/Admin/Desktop/percycle/analise/exp2/perf_decision")
+
+# Function to read and label data
+read_data <- function(file) {
+  data <- read.table(file, header = FALSE, sep = "\t")
+  colnames(data) <- c("MAC", "perf")
+  return(data)
+}
+
+# Files and labels for Task-goal data
+task_files <- c("performance_scaledB.txt", "performance_wideB.txt", "performance_narrowB.txt")
+task_labels <- c("scaled HB", "wider HB", "narrower HB")
+
+# Read Task-goal data
+task_data_list <- lapply(task_files, read_data)
+
+# Fit models and get extended predictions for Task-goal
+task_models <- lapply(task_data_list, function(data) glm(perf ~ MAC, family = binomial, data = data))
+task_preds <- lapply(task_models, function(model) {
+  newdata <- data.frame(MAC = seq(-4, 10, length.out = 100))  # Extend MAC values for the curve
+  pred <- predict(model, newdata, type = "response")
+  data.frame(MAC = newdata$MAC, pred = pred)
+})
+
+# Generate markers for MAC values from -1 to +8
+task_marker_preds <- lapply(task_models, function(model) {
+  newdata <- data.frame(MAC = seq(-1, 8, by = 1))  # Points only for MAC conditions -1 to +8
+  pred <- predict(model, newdata, type = "response")
+  data.frame(MAC = newdata$MAC, pred = pred)
+})
+
+# Combine predictions into a single data frame for Task-goal (curve and markers)
+pred_data_perf <- do.call(rbind, Map(function(pred, label) data.frame(Groups = label, pred, MAC = pred$MAC), task_preds, task_labels))
+marker_data_perf <- do.call(rbind, Map(function(pred, label) data.frame(Groups = label, pred, MAC = pred$MAC), task_marker_preds, task_labels))
+
+# Plot for Task-goal
+plot_perf <- ggplot(pred_data_perf, aes(x = MAC, y = pred, color = Groups)) +
+  geom_point(data = marker_data_perf, aes(x = MAC, y = pred, fill = Groups), shape = 21, size = 2) +  # Add markers only for specific MAC points
+  geom_smooth(aes(fill = Groups, color = Groups), method = "glm", method.args = list(family = "binomial"), size = 1, se = TRUE, alpha = 0.2) +  # Smooth curve with SE area
+  labs(x = " ", y = "Probab. of Success", title = "Task-goal") +
+  scale_x_continuous(
+    limits = c(-4, 8), 
+    breaks = seq(-4, 8, 1), 
+    labels = c("-4", "-3", "-2", "-1", "MAC", "+1", "+2", "+3", "+4", "+5", "+6", "+7", "+8")
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  scale_fill_manual(values = c("scaled HB" = "lightpink2", "wider HB" = "plum3", "narrower HB" = "peru")) +
+  scale_color_manual(values = c("scaled HB" = "lightpink2", "wider HB" = "plum3", "narrower HB" = "peru")) +
+  theme_gray() +
+  theme(
+    axis.title = element_text(size = 12),  # Font size for axis titles
+    axis.text = element_text(size = 8, color = "black"),   # Font size for axis text
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Font size and style for plot title
+    legend.title = element_text(size = 10, hjust = 0.5),  # Font size for legend title
+    legend.text = element_text(size = 8),    # Font size for legend text
+    panel.grid.minor = element_blank()        # Remove minor grid lines
+  )
+
+# Files and labels for Decision-making data
+decision_files <- c("decision_scaledB.txt", "decision_wideB.txt", "decision_narrowB.txt")
+decision_labels <- c("scaled HB", "wider HB", "narrower HB")
+
+# Read Decision-making data
+decision_data_list <- lapply(decision_files, read_data)
+
+# Fit models and get extended predictions for Decision-making
+decision_models <- lapply(decision_data_list, function(data) glm(perf ~ MAC, family = binomial, data = data))
+decision_preds <- lapply(decision_models, function(model) {
+  newdata <- data.frame(MAC = seq(-4, 10, length.out = 100))  # Extend MAC values for the curve
+  pred <- predict(model, newdata, type = "response")
+  data.frame(MAC = newdata$MAC, pred = pred)
+})
+
+# Generate markers for MAC values from -1 to +8
+decision_marker_preds <- lapply(decision_models, function(model) {
+  newdata <- data.frame(MAC = seq(-1, 8, by = 1))  # Points only for MAC conditions -1 to +8
+  pred <- predict(model, newdata, type = "response")
+  data.frame(MAC = newdata$MAC, pred = pred)
+})
+
+# Combine predictions into a single data frame for Decision-making (curve and markers)
+pred_data_decision <- do.call(rbind, Map(function(pred, label) data.frame(Groups = label, pred, MAC = pred$MAC), decision_preds, decision_labels))
+marker_data_decision <- do.call(rbind, Map(function(pred, label) data.frame(Groups = label, pred, MAC = pred$MAC), decision_marker_preds, decision_labels))
+
+# Plot for Decision-making
+plot_decision <- ggplot(pred_data_decision, aes(x = MAC, y = pred, color = Groups)) +
+  geom_point(data = marker_data_decision, aes(x = MAC, y = pred, fill = Groups), shape = 21, size = 2) +  # Add markers only for specific MAC points
+  geom_smooth(aes(fill = Groups, color = Groups), method = "glm", method.args = list(family = "binomial"), size = 1, se = TRUE, alpha = 0.2) +  # Smooth curve with SE area
+  labs(x = " ", y = " ", title = "Decision-making") +
+  scale_x_continuous(
+    limits = c(-4, 8), 
+    breaks = seq(-4, 8, 1), 
+    labels = c("-4", "-3", "-2", "-1", "MAC", "+1", "+2", "+3", "+4", "+5", "+6", "+7", "+8")
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+  scale_fill_manual(values = c("scaled HB" = "lightpink2", "wider HB" = "plum3", "narrower HB" = "peru")) +
+  scale_color_manual(values = c("scaled HB" = "lightpink2", "wider HB" = "plum3", "narrower HB" = "peru")) +
+  theme_gray() +
+  theme(
+    axis.title = element_text(size = 12),  # Font size for axis titles
+    axis.text = element_text(size = 8, color = "black"),   # Font size for axis text
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Font size and style for plot title
+    legend.title = element_text(size = 10, hjust = 0.5),  # Font size for legend title
+    legend.text = element_text(size = 8),    # Font size for legend text
+    panel.grid.minor = element_blank()        # Remove minor grid lines
+  )
+
+# Combine the two plots and arrange the legend
+combined_plot <- (plot_perf + plot_decision) + plot_layout(guides = 'collect') & theme(legend.position = 'right')
+
+# Display the combined plot
+print(combined_plot)
+
+# Save the plot with high resolution
+ggsave("perfdecision_plot3.png", plot = combined_plot, width = 8, height = 4, dpi = 600)
