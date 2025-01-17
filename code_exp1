@@ -1,0 +1,146 @@
+# Load necessary libraries
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(patchwork)
+library(ggpubr)
+library(rstatix)
+install.packages("RColorBrewer")
+library(RColorBrewer)
+install.packages('ggthemes', dependencies = TRUE)
+library("ggthemes")
+
+
+# Set working directory
+setwd("C:/Users/Admin/Desktop/percycle/analise/exp1")
+
+# Function to read and label data
+read_numerical_data <- function(file) {
+  data <- read.table(file, header = FALSE, sep = "\t")
+  colnames(data) <- c("scaled HB", "wider HB", "narrow HB")
+  return(data)
+}
+
+# Read numerical data for MAC
+MAC_data <- read_numerical_data("MAC.txt")
+
+# Convert data to long format for ggplot compatibility
+library(tidyr)
+MAC_long <- MAC_data %>%
+  pivot_longer(cols = everything(), names_to = "condition", values_to = "value")
+
+# Define comparisons for statistical annotations
+my_comparisons <- list(c("scaled HB", "wider HB"), c("scaled HB", "narrow HB"), c("wider HB", "narrow HB"))
+
+# Perform Kruskal-Wallis Test
+kruskal_result <- kruskal_test(value ~ condition, data = MAC_long)
+
+# Calculate eta-squared for Kruskal-Wallis
+eta_squared <- kruskal_effsize(value ~ condition, data = MAC_long)
+
+# Compute pairwise Cohen's d
+pairwise_effect_sizes <- MAC_long %>%
+  cohens_d(value ~ condition, var.equal = FALSE)
+
+# Export statistical results to a text file
+sink("MAC_Statistical_Results.txt")
+cat("Statistical Results for MAC Data\n\n")
+cat("Kruskal-Wallis Test:\n")
+print(kruskal_result)
+cat("\nEffect Size (Eta-squared):\n")
+print(eta_squared)
+cat("\nPairwise Cohen's d:\n")
+print(pairwise_effect_sizes)
+sink()  # Stop writing to the file
+
+
+# Updated Violin Plot with Adjustments
+p1 <- ggplot(MAC_long, aes(x = condition, y = value)) +
+  # Violin plot with manually adjusted bandwidth for KDE
+  geom_violin(trim = TRUE, color = "black", fill = NA, alpha = 0.4, adjust = 1.5) +
+  # Boxplot overlay
+  geom_boxplot(width = 0.2, outlier.shape = NA, color = "black", fill = NA) +
+  # Jittered points with increased width for better dispersion
+  geom_jitter(aes(color = condition), width = 0.2, size = 2, alpha = 0.4) +
+  # Median points for emphasis
+  stat_summary(fun = median, geom = "point", shape = 16, size = 2, color = "darkred") +
+  # Custom color scale for points
+  geom_hline(yintercept = 1.0, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("narrow HB" = "peru", "scaled HB" = "lightpink2", "wider HB" = "plum3")) +
+  # Statistical comparisons with significance labels
+  stat_compare_means(
+    comparisons = my_comparisons,
+    label = "p.signif",
+    symnum.args = list(
+      cutpoints = c(0, 0.05, 1),
+      symbols = c("*", "ns")
+    )
+  ) +
+  # Custom axis labels, title, and scaling
+  labs(title = "MAC Tests", x = " ", y = "Aperture Width relative to Handlebar Width") +
+  scale_y_continuous(limits = c(0.8, 1.8), breaks = seq(0.8, 1.8, 0.2)) +
+  # Improved theming for clarity
+  theme_classic() +
+  theme(
+    plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 8, color = "black"),
+    axis.text = element_text(size = 8, color = "black"),
+    legend.position = 'none'
+  )
+
+# Function to read and label categorical data
+read_categorical_data <- function(file) {
+  data <- read.table(file, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+  colnames(data) <- c("scaled HB", "wider HB", "narrow HB")
+  return(data)
+}
+
+# Read and reshape categorical data
+modes_data <- read_categorical_data("modes_MAC.txt")
+data_long <- pivot_longer(modes_data, cols = everything(), names_to = "condition", values_to = "category")
+
+# Ensure proper factor levels
+data_long$condition <- factor(data_long$condition, levels = c("narrow HB", "scaled HB", "wider HB"))
+data_long$category <- factor(data_long$category, levels = c("Facing", "Fsqueezing", "Frotating", "Turning", "Tsqueezing", "Trotating"))
+
+# Calculate frequencies and percentages
+freq_data <- data_long %>%
+  group_by(condition, category) %>%
+  summarize(count = n(), .groups = 'drop') %>%
+  group_by(condition) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+p2 <- ggplot(freq_data, aes(x = condition, y = percentage, fill = category)) +
+  # Stacked bar chart
+  geom_bar(stat = "identity", position = "stack", color = "black", size = 0.5, alpha = 0.7, width = 0.5) +
+  # Add text for percentages
+#  geom_text(
+#    aes(label = paste0(round(percentage, 1))),
+#    position = position_stack(vjust = 0.5),
+#    size = 2.2, color = "black"
+#  ) +
+  # Axis labels and title
+  labs(x = " ", y = "Percentage", title = "Modes of Action at MAC") +
+  # Custom y-axis and fill scale
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, 10)) +
+  scale_fill_manual(values = c("Turning" = "#00441B", "Fsqueezing" = "#1F78B4", "Facing" = "#053061", 
+                               "Frotating" = "#A6CEE3", "Tsqueezing" = "#33A02C", "Trotating" = "#B2DF8A")) +
+  # Theme settings
+  theme_classic() +
+  theme(
+    axis.title = element_text(size = 8, color = 'black'),
+    axis.text = element_text(size = 8, color = 'black'),
+    plot.title = element_text(size = 10, color = 'black', face = "bold", hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 7, color = 'black'),
+    legend.position = 'right'
+  )
+
+
+# Combine the plots side by side
+combined_plot <- p1 | (p2 + theme(legend.position = 'right'))
+print(combined_plot)
+
+
+# Save the plot with high resolution
+ggsave("MACmodes_plot.png", plot = combined_plot, width = 6.8, height = 3.2, dpi = 600)
